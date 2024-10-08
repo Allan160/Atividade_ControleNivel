@@ -7,8 +7,8 @@ class CaixaEletronico
     static List<string> transacoes = new List<string>();
     static string nomeCliente, cpfCliente, senhaCliente;
     static decimal saldo = 1000.00m;
-    static decimal limiteSaque = 500.00m; // Limite de saque diário
-    static decimal taxaTransferencia = 0.0005m; // Taxa de 0,05%
+    static decimal limiteSaque = 500.00m;
+    static decimal taxaTransferencia = 0.0005m;
     static bool autenticado = false;
 
     static void Main()
@@ -23,7 +23,7 @@ class CaixaEletronico
 
             if (cpfCliente.Length == 11 && ulong.TryParse(cpfCliente, out _))
             {
-                break; // CPF válido, sai do loop
+                break;
             }
             else
             {
@@ -39,7 +39,7 @@ class CaixaEletronico
             if (senhaCliente.Length == 6 && ulong.TryParse(senhaCliente, out _))
             {
                 autenticado = true;
-                break; // Senha válida, sai do loop
+                break;
             }
             else
             {
@@ -182,10 +182,10 @@ class CaixaEletronico
                 switch (opcaoAplicacao)
                 {
                     case 1:
-                        rendimento = valorAplicacao * 0.0056m; // Rendimento mensal
+                        rendimento = valorAplicacao * 0.0056m;
                         break;
                     case 2:
-                        rendimento = valorAplicacao * 0.9m * 0.1m; // Rendimento considerando CDI de 10%
+                        rendimento = valorAplicacao * 0.9m * 0.1m;
                         break;
                     default:
                         Console.WriteLine("Opção inválida.");
