@@ -5,7 +5,11 @@ using System.IO;
 class CaixaEletronico
 {
     static List<string> transacoes = new List<string>();
-    static string nomeCliente, cpfCliente;
+    static string nomeCliente, cpfCliente, senhaCliente;
+    static decimal saldo = 1000.00m;
+    static decimal limiteSaque = 500.00m; // Limite de saque diário
+    static decimal taxaTransferencia = 0.0005m; // Taxa de 0,05%
+    static bool autenticado = false;
 
     static void Main()
     {
@@ -27,10 +31,25 @@ class CaixaEletronico
             }
         }
 
-        decimal saldo = 1000.00m;
+        while (true)
+        {
+            Console.Write("Informe sua senha (6 dígitos): ");
+            senhaCliente = Console.ReadLine();
+
+            if (senhaCliente.Length == 6 && ulong.TryParse(senhaCliente, out _))
+            {
+                autenticado = true;
+                break; // Senha válida, sai do loop
+            }
+            else
+            {
+                Console.WriteLine("Senha inválida. A senha deve ter 6 dígitos.");
+            }
+        }
+
         bool continuar = true;
 
-        while (continuar)
+        while (continuar && autenticado)
         {
             Console.Clear();
             int largura = 50;
@@ -46,7 +65,8 @@ class CaixaEletronico
             Console.WriteLine("3. Extrato");
             Console.WriteLine("4. Transferência");
             Console.WriteLine("5. Histórico de Transações");
-            Console.WriteLine("6. Sair");
+            Console.WriteLine("6. Aplicações Financeiras");
+            Console.WriteLine("7. Sair");
             Console.Write("Escolha uma opção: ");
 
             if (int.TryParse(Console.ReadLine(), out int opcao))
@@ -54,11 +74,12 @@ class CaixaEletronico
                 switch (opcao)
                 {
                     case 1: RealizarTransacao(ref saldo, "depósito"); break;
-                    case 2: RealizarTransacao(ref saldo, "saque"); break;
+                    case 2: RealizarSaque(ref saldo); break;
                     case 3: MostrarExtrato(); break;
-                    case 4: RealizarTransacao(ref saldo, "transferência"); break;
+                    case 4: RealizarTransferencia(ref saldo); break;
                     case 5: MostrarHistorico(); break;
-                    case 6: continuar = false; break;
+                    case 6: AplicacoesFinanceiras(ref saldo); break;
+                    case 7: continuar = false; break;
                     default: Console.WriteLine("Opção inválida."); break;
                 }
             }
@@ -76,21 +97,112 @@ class CaixaEletronico
         Console.Write($"Informe o valor do {tipo}: ");
         if (decimal.TryParse(Console.ReadLine(), out decimal valor) && valor > 0)
         {
-            if (tipo == "saque" && valor > saldo)
-            {
-                Console.WriteLine("Saldo insuficiente.");
-                return;
-            }
             saldo += tipo == "depósito" ? valor : -valor;
             string comprovante = GerarComprovante($"{tipo}: R$ {valor}");
             transacoes.Add(comprovante);
             Console.WriteLine(comprovante);
             SalvarComprovanteEmArquivo(comprovante);
-            SalvarOperacaoEmArquivo(tipo, valor); 
+            SalvarOperacaoEmArquivo(tipo, valor);
         }
         else
         {
             Console.WriteLine("Valor inválido.");
+        }
+    }
+
+    static void RealizarSaque(ref decimal saldo)
+    {
+        Console.Write($"Informe o valor do saque (Limite: R$ {limiteSaque}): ");
+        if (decimal.TryParse(Console.ReadLine(), out decimal valor) && valor > 0)
+        {
+            if (valor > saldo)
+            {
+                Console.WriteLine("Saldo insuficiente.");
+                return;
+            }
+            if (valor > limiteSaque)
+            {
+                Console.WriteLine($"Valor excede o limite de saque diário de R$ {limiteSaque}.");
+                return;
+            }
+
+            saldo -= valor;
+            string comprovante = GerarComprovante($"saque: R$ {valor}");
+            transacoes.Add(comprovante);
+            Console.WriteLine(comprovante);
+            SalvarComprovanteEmArquivo(comprovante);
+            SalvarOperacaoEmArquivo("saque", valor);
+        }
+        else
+        {
+            Console.WriteLine("Valor inválido.");
+        }
+    }
+
+    static void RealizarTransferencia(ref decimal saldo)
+    {
+        Console.Write("Informe o valor da transferência: ");
+        if (decimal.TryParse(Console.ReadLine(), out decimal valor) && valor > 0)
+        {
+            decimal taxa = valor * taxaTransferencia;
+            if (valor + taxa > saldo)
+            {
+                Console.WriteLine("Saldo insuficiente para transferência e taxa.");
+                return;
+            }
+
+            saldo -= (valor + taxa);
+            string comprovante = GerarComprovante($"transferência: R$ {valor} (taxa: R$ {taxa})");
+            transacoes.Add(comprovante);
+            Console.WriteLine(comprovante);
+            SalvarComprovanteEmArquivo(comprovante);
+            SalvarOperacaoEmArquivo("transferência", valor + taxa);
+        }
+        else
+        {
+            Console.WriteLine("Valor inválido.");
+        }
+    }
+
+    static void AplicacoesFinanceiras(ref decimal saldo)
+    {
+        Console.WriteLine("Escolha uma aplicação:");
+        Console.WriteLine("1. Poupança (rendimento de 0,56% mensal)");
+        Console.WriteLine("2. CDB (rendimento de 90% do CDI)");
+        Console.Write("Escolha uma opção: ");
+
+        if (int.TryParse(Console.ReadLine(), out int opcaoAplicacao))
+        {
+            Console.Write("Informe o valor a ser aplicado: ");
+            if (decimal.TryParse(Console.ReadLine(), out decimal valorAplicacao) && valorAplicacao > 0 && valorAplicacao <= saldo)
+            {
+                saldo -= valorAplicacao;
+
+                decimal rendimento = 0;
+                switch (opcaoAplicacao)
+                {
+                    case 1:
+                        rendimento = valorAplicacao * 0.0056m; // Rendimento mensal
+                        break;
+                    case 2:
+                        rendimento = valorAplicacao * 0.9m * 0.1m; // Rendimento considerando CDI de 10%
+                        break;
+                    default:
+                        Console.WriteLine("Opção inválida.");
+                        return;
+                }
+
+                Console.WriteLine($"Aplicação de R$ {valorAplicacao} realizada com rendimento estimado de R$ {rendimento}.");
+                transacoes.Add(GerarComprovante($"aplicação: R$ {valorAplicacao}"));
+            }
+            else
+            {
+                Console.WriteLine("Valor inválido ou insuficiente.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Opção inválida.");
         }
     }
 
@@ -104,7 +216,7 @@ class CaixaEletronico
     static void MostrarExtrato()
     {
         string caminhoExtrato = "extrato.txt";
-        using (StreamWriter sw = new StreamWriter(caminhoExtrato, false)) 
+        using (StreamWriter sw = new StreamWriter(caminhoExtrato, false))
         {
             sw.WriteLine($"=== Extrato Bancário - {nomeCliente} - CPF: {cpfCliente} ===");
             Console.WriteLine($"=== Extrato Bancário - {nomeCliente} - CPF: {cpfCliente} ===");
@@ -132,7 +244,6 @@ class CaixaEletronico
         using (StreamWriter sw = new StreamWriter(caminhoArquivo, true))
         {
             sw.WriteLine(comprovante);
-             Console.WriteLine(comprovante);
         }
     }
 
@@ -142,7 +253,6 @@ class CaixaEletronico
         using (StreamWriter sw = new StreamWriter(caminhoOperacao, true))
         {
             sw.WriteLine($"{DateTime.Now:dd/MM/yyyy HH:mm:ss} - {nomeCliente} - CPF: {cpfCliente} - {tipo}: R$ {valor}");
-            Console.WriteLine($"{DateTime.Now:dd/MM/yyyy HH:mm:ss} - {nomeCliente} - CPF: {cpfCliente} - {tipo}: R$ {valor}");
         }
     }
 }
