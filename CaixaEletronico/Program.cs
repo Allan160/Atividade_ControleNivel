@@ -244,6 +244,7 @@ class CaixaEletronico
         using (StreamWriter sw = new StreamWriter(caminhoArquivo, true))
         {
             sw.WriteLine(comprovante);
+            Console.WriteLine(comprovante);
         }
     }
 
@@ -253,6 +254,7 @@ class CaixaEletronico
         using (StreamWriter sw = new StreamWriter(caminhoOperacao, true))
         {
             sw.WriteLine($"{DateTime.Now:dd/MM/yyyy HH:mm:ss} - {nomeCliente} - CPF: {cpfCliente} - {tipo}: R$ {valor}");
+            Console.WriteLine($"{DateTime.Now:dd/MM/yyyy HH:mm:ss} - {nomeCliente} - CPF: {cpfCliente} - {tipo}: R$ {valor}");
         }
     }
 }
